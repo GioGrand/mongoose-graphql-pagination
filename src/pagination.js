@@ -1,7 +1,7 @@
-const deepMerge = require('deepmerge');
-const isPlainObject = require('is-plain-object');
-const Sort = require('./sort');
-const Limit = require('./limit');
+const deepMerge = require("deepmerge");
+const isPlainObject = require("is-plain-object");
+const Sort = require("./sort");
+const Limit = require("./limit");
 
 const mergeOptions = { isMergeableObject: isPlainObject };
 
@@ -24,14 +24,13 @@ class Pagination {
    * @param {object} options Additional sort, limit and criteria merge options.
    *                         See the corresponding classes.
    */
-  constructor(Model, {
-    criteria = {},
-    pagination = {},
-    sort = {},
-    projection,
-  } = {}, options = {}) {
+  constructor(
+    Model,
+    { criteria = {}, pagination = {}, sort = {}, projection, uid } = {},
+    options = {}
+  ) {
     this.promises = {};
-
+    this.uid = uid;
     // Set the Model to use for querying.
     this.Model = Model;
 
@@ -81,8 +80,14 @@ class Pagination {
         .sort(this.sort.value)
         .limit(this.first.value)
         .collation(this.sort.collation)
-        .comment(this.createComment('getEdges'));
-      return docs.map(doc => ({ node: doc, cursor: doc.id }));
+        .comment(this.createComment("getEdges"));
+      docs.forEach((element) => {
+        const liked = element.likes.find((x) => x._id === this.uid);
+        const favourite = element.favourites.includes(this.uid);
+        if (liked) element.isLiked = true;
+        if (favourite) element.isFavourite = true;
+      });
+      return docs.map((doc) => ({ node: doc, cursor: doc.id }));
     };
     if (!this.promises.edge) {
       this.promises.edge = run();
@@ -122,7 +127,7 @@ class Pagination {
         .limit(1)
         .sort(this.sort.value)
         .collation(this.sort.collation)
-        .comment(this.createComment('hasNextPage'))
+        .comment(this.createComment("hasNextPage"))
         .countDocuments();
       return Boolean(count);
     };
@@ -142,7 +147,7 @@ class Pagination {
     const run = async () => {
       const doc = await this.Model.findOne({ _id: id })
         .select(fields)
-        .comment(this.createComment('findCursorModel'));
+        .comment(this.createComment("findCursorModel"));
       if (!doc) throw new Error(`No record found for ID '${id}'`);
       return doc;
     };
@@ -166,8 +171,8 @@ class Pagination {
 
       if (this.after) {
         let doc;
-        const op = order === 1 ? '$gt' : '$lt';
-        if (field === '_id') {
+        const op = order === 1 ? "$gt" : "$lt";
+        if (field === "_id") {
           // Sort by ID only.
           doc = await this.findCursorModel(this.after, { _id: 1 });
           filter._id = { [op]: doc.id };
