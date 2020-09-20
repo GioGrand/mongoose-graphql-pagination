@@ -82,7 +82,7 @@ class Pagination {
         .collation(this.sort.collation)
         .comment(this.createComment("getEdges"));
       docs.forEach((element) => {
-        const liked = element.likes.find((x) => x._id === this.uid);
+        const liked = element.likes.find((x) => x.authorId === this.uid);
         const favourite = element.favourites.includes(this.uid);
         if (liked) element.isLiked = true;
         if (favourite) element.isFavourite = true;
